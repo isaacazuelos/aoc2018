@@ -29,6 +29,14 @@ def count_uses(claims):
     return counts
 
 
+def overlaps(uses, claim):
+    for x in range(claim.x, claim.x + claim.w):
+        for y in range(claim.y, claim.y + claim.h):
+            if uses[(x, y)] > 1:
+                return True
+    return False
+
+
 claims = list(map(parse_claim, open("input.txt", "r").readlines()))
 
 uses = count_uses(claims)
@@ -38,4 +46,8 @@ for coord in uses:
     if uses[coord] > 1:
         overlap += 1
 
-print(overlap)
+print(f"part 1: {overlap}")
+
+for claim in claims:
+    if not overlaps(uses, claim):
+        print(f"part 2: {claim}")
