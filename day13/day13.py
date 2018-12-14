@@ -1,5 +1,7 @@
 import sys
 
+from itertools import product
+
 # 'direction' is one of these relative directions
 left = 0
 straight = 1
@@ -38,9 +40,9 @@ class Cart:
         if self.turn_direction == straight:
             pass
         elif self.heading == north and self.turn_direction == left:
-            self.heading = east
-        elif self.heading == north and self.turn_direction == right:
             self.heading = west
+        elif self.heading == north and self.turn_direction == right:
+            self.heading = east
         elif self.heading == west and self.turn_direction == left:
             self.heading = south
         elif self.heading == west and self.turn_direction == right:
@@ -82,14 +84,18 @@ def cart_at(pos, carts):
             return cart
 
 
-def print_grid(grid, carts=None):
+def print_grid(grid, carts=None, crashes=None):
     carts = carts or set()
+    crashes = crashes or set()
     for (x, y) in point_in_grid(grid):
         if x == 0:
             print()
 
         if cart_at((x, y), carts):
             cart = cart_at((x, y), carts)
+            print(cart.heading, end="")
+        elif cart_at((x, y), crashes):
+            cart = cart_at((x, y), crashes)
             print(cart.heading, end="")
         else:
             print(grid[y][x], end="")
@@ -125,31 +131,56 @@ def first_crash(carts):
             return cart
 
 
-def tick(grid, carts):
+def remove_crashes(carts, crashes):
+    for (l, r) in product(carts, carts):
+        if l is r:
+            continue
+        elif l.position == r.position:
+            crashes.add(l)
+            crashes.add(r)
+            l.heading = crash
+            r.heading = crash
+
+    for c in crashes:
+        if c in carts:
+            carts.remove(c)
+
+
+def tick(grid, carts, crashes):
     for cart in sorted_carts(carts):
+
+        if cart not in carts:
+            continue
 
         cart.move()
 
         (nx, ny) = cart.position
         tile = grid[ny][nx]
 
-        for other_cart in carts:
-            if other_cart is not cart:
-                if other_cart.position == cart.position:
-                    other_cart.heading = crash
-                    cart.heading = crash
-
         if tile in "/\\":
             cart.corner(tile)
         elif tile == "+":
             cart.turn()
 
+        remove_crashes(carts, crashes)
+
 
 def part_1(grid, carts):
-    while not first_crash(carts):
-        tick(grid, carts)
+    crashes = set()
 
-    print(f"part 1: {first_crash(carts).position}")
+    while not crashes:
+        tick(grid, carts, crashes)
+
+    print(f"part 1: {crashes.pop().position}")
+
+
+def part_2(grid, carts):
+
+    while len(carts) > 1:
+        crashes = set()
+        tick(grid, carts, crashes)
+
+    print(f"part 2: {carts.pop().position}")
 
 
 lines = open(sys.argv[1], "r").read().split("\n")
@@ -159,3 +190,4 @@ grid = list(map(list, lines))
 carts = extract_carts(grid)
 
 part_1(grid, carts)
+part_2(grid, carts)
