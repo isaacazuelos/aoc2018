@@ -1,4 +1,4 @@
-from collections import namedtuple
+import sys
 
 # 'direction' is one of these relative directions
 left = 0
@@ -13,165 +13,149 @@ east = ">"
 west = "<"
 crash = "X"
 
-Cart = namedtuple("Cart", ["heading", "direction"])
+
+class Cart:
+    def __init__(self, heading, position, turn_direction=left):
+        self.heading = heading
+        self.position = position
+        self.turn_direction = turn_direction
+
+    def move(self):
+        (x, y) = self.position
+        if self.heading == north:
+            self.position = (x, y - 1)
+        elif self.heading == south:
+            self.position = (x, y + 1)
+        elif self.heading == east:
+            self.position = (x + 1, y)
+        elif self.heading == west:
+            self.position = (x - 1, y)
+
+    def increment_turn_direction(self):
+        self.turn_direction = (self.turn_direction + 1) % 3
+
+    def turn(self):
+        if self.turn_direction == straight:
+            pass
+        elif self.heading == north and self.turn_direction == left:
+            self.heading = east
+        elif self.heading == north and self.turn_direction == right:
+            self.heading = west
+        elif self.heading == west and self.turn_direction == left:
+            self.heading = south
+        elif self.heading == west and self.turn_direction == right:
+            self.heading = north
+        elif self.heading == east and self.turn_direction == left:
+            self.heading = north
+        elif self.heading == east and self.turn_direction == right:
+            self.heading = south
+        elif self.heading == south and self.turn_direction == left:
+            self.heading = east
+        elif self.heading == south and self.turn_direction == right:
+            self.heading = west
+
+        self.increment_turn_direction()
+
+    def corner(self, corner):
+        # cornering is when we're forced to change heading by the track
+        if self.heading == north and corner == "\\":
+            self.heading = west
+        elif self.heading == south and corner == "\\":
+            self.heading = east
+        elif self.heading == east and corner == "\\":
+            self.heading = south
+        elif self.heading == west and corner == "\\":
+            self.heading = north
+        elif self.heading == north and corner == "/":
+            self.heading = east
+        elif self.heading == south and corner == "/":
+            self.heading = west
+        elif self.heading == east and corner == "/":
+            self.heading = north
+        elif self.heading == west and corner == "/":
+            self.heading = south
 
 
-def next_turn(direction):
-    return (direction + 1) % 3
+def cart_at(pos, carts):
+    for cart in carts:
+        if cart.position == pos:
+            return cart
 
 
-def turn(heading, direction):
-    # turning is when we hit and intersection and get to choose a new heading
-    if direction == straight:
-        return heading
-    elif heading == north and direction == left:
-        return east
-    elif heading == north and direction == right:
-        return west
-    elif heading == west and direction == left:
-        return south
-    elif heading == west and direction == right:
-        return north
-    elif heading == east and direction == left:
-        return north
-    elif heading == east and direction == right:
-        return south
-    elif heading == south and direction == left:
-        return east
-    elif heading == south and direction == right:
-        return west
-    else:
-        raise Exception(f"cannot turn {heading} by {direction}")
+def print_grid(grid, carts=None):
+    carts = carts or set()
+    for (x, y) in point_in_grid(grid):
+        if x == 0:
+            print()
+
+        if cart_at((x, y), carts):
+            cart = cart_at((x, y), carts)
+            print(cart.heading, end="")
+        else:
+            print(grid[y][x], end="")
 
 
-def corner(heading, corner):
-    # cornering is when we're forced to change heading by the track
-    if heading == north and corner == "\\":
-        return west
-    elif heading == south and corner == "\\":
-        return east
-    elif heading == east and corner == "\\":
-        return south
-    elif heading == west and corner == "\\":
-        return north
-    elif heading == north and corner == "/":
-        return east
-    elif heading == south and corner == "/":
-        return west
-    elif heading == east and corner == "/":
-        return north
-    elif heading == west and corner == "/":
-        return south
-    else:
-        raise Exception(f"cannot corner on {corner} heading {heading} ")
+def point_in_grid(grid):
+    for y in range(len(grid)):
+        for x in range(len(grid[y])):
+            yield (x, y)
 
 
-def move_by(pos, heading):
-    (x, y) = pos
-    if heading == north:
-        return (x, y - 1)
-    elif heading == south:
-        return (x, y + 1)
-    elif heading == east:
-        return (x + 1, y)
-    elif heading == west:
-        return (x - 1, y)
-    elif heading == crash:
-        return pos
-    else:
-        raise Exception(f"cannot move {pos} in {heading}")
+def extract_carts(grid):
+    carts = set()
+    for (x, y) in point_in_grid(grid):
+        tile = grid[y][x]
+        if grid[y][x] in "><":
+            carts.add(Cart(heading=tile, position=(x, y)))
+            grid[y][x] = "-"
+        elif grid[y][x] in "^v":
+            carts.add(Cart(heading=tile, position=(x, y)))
+            grid[y][x] = "|"
+
+    return carts
+
+
+def sorted_carts(carts):
+    return list(sorted(carts, key=lambda c: (c.position[1], c.position[0])))
+
+
+def first_crash(carts):
+    for cart in sorted_carts(carts):
+        if cart.heading == crash:
+            return cart
 
 
 def tick(grid, carts):
-    new = {}
+    for cart in sorted_carts(carts):
 
-    # `for cart in carts` is out of order
-    for y in range(len(grid)):
-        for x in range(len(grid[y])):
-            if (x, y) not in carts:
-                continue
+        cart.move()
 
-            pos = (x, y)
-            cart = carts[pos]
+        (nx, ny) = cart.position
+        tile = grid[ny][nx]
 
-            new_pos = move_by(pos, cart.heading)
-            (nx, ny) = new_pos
+        for other_cart in carts:
+            if other_cart is not cart:
+                if other_cart.position == cart.position:
+                    other_cart.heading = crash
+                    cart.heading = crash
 
-            on_tile = grid[ny][nx]
-
-            # determine new heading
-            if on_tile == "+":
-                new_heading = turn(cart.heading, cart.direction)
-                new_direction = next_turn(cart.direction)
-            elif on_tile == "/" or on_tile == "\\":
-                new_heading = corner(cart.heading, on_tile)
-                new_direction = cart.direction
-            else:
-                new_heading = cart.heading
-                new_direction = cart.direction
-
-            # detect crash
-            if new_pos in new:
-                new_heading = crash
-
-            new[new_pos] = Cart(heading=new_heading, direction=new_direction)
-
-    return new
-
-
-def print_gird(grid, carts):
-    for y in range(len(grid)):
-        for x in range(len(grid[y])):
-            if (x, y) in carts:
-                cart = carts[(x, y)]
-                print(cart.heading, end="")
-            else:
-                print(grid[y][x], end="")
-        print()
-
-
-def has_crash(carts):
-    for pos, cart in carts.items():
-        if cart.heading == crash:
-            return pos
+        if tile in "/\\":
+            cart.corner(tile)
+        elif tile == "+":
+            cart.turn()
 
 
 def part_1(grid, carts):
-    states = [carts]
-    tock = 0
-    while not has_crash(carts):
-        carts = tick(grid, carts)
-        states.append(carts)
-        tock += 1
+    while not first_crash(carts):
+        tick(grid, carts)
 
-    print(tock)
-    print_gird(grid, states[-2])
-    print_gird(grid, states[-1])
-    (x, y) = has_crash(carts)
-    print(f"part 1: {x},{y}")
+    print(f"part 1: {first_crash(carts).position}")
 
 
-def part_2():
-    print("part 2:")
+lines = open(sys.argv[1], "r").read().split("\n")
 
-
-lines = open("input.txt", "r").read().split("\n")
-
-# notice that the only characters that matter are "/ \ + v ^ < >" We can
-# ignore | and -  as the carts are moving in that direction already.
-#
-# Also notice that the grid is [y][x] :(
 grid = list(map(list, lines))
 
-carts = {}
-for y in range(len(grid)):
-    for x in range(len(grid[y])):
-        char = grid[y][x]
-        if char in [north, south, east, west]:
-            carts[(x, y)] = Cart(heading=char, direction=left)
-            if char in "<>":
-                grid[y][x] = "-"
-            else:
-                grid[y][x] = "|"
+carts = extract_carts(grid)
 
 part_1(grid, carts)
