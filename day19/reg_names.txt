@@ -1,0 +1,39 @@
+#ip 2
+00: addi ip 16 ip
+01: seti  1  -  e
+02: seti  1  -  c
+03: mulr  e  c  d
+04: eqrr  d  b  d
+05: addr  d ip ip
+06: addi ip  1 ip
+07: addr  e  a  a
+08: addi  c  1  c
+09: gtrr  c  b  d
+10: addr ip  d ip
+11: seti  2  - ip
+12: addi  e  1  e
+13: gtrr  e  b  d
+14: addr  d ip ip
+15: seti  1  - ip
+16: mulr ip ip ips
+17: addi  b  2  b
+18: mulr  b  b  b
+19: mulr  c  b  b
+20: muli  b 11  b
+21: addi  d  3  d
+22: mulr  d ip  d
+23: addi  d  7  d
+24: addr  b  4  b
+25: addr ip  a ip
+26: seti  0  - ip
+27: setr ip  -  d
+28: mulr  d ip  d
+29: addr ip  d  d
+30: mulr ip  d  d
+31: muli  d 14  d
+32: mulr  d ip  d
+33: addr  b  d  b
+34: seti  0  -  a
+35: seti  0  - ip
+
+# {a:0, b:1, ip:2, c:3, d:4, e:5}
