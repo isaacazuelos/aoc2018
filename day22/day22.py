@@ -1,16 +1,24 @@
-from collections import deque
+import heapq
+from collections import deque, defaultdict
+
+START = (0, 0)
 
 # problem
-DEPTH = 11109
-TARGET = (9, 731)
+# DEPTH = 11109
+# TARGET = (9, 731)
 
 # example
-# DEPTH = 510
-# TARGET = (10, 10)
+DEPTH = 510
+TARGET = (10, 10)
 
 ROCKY = 0
 WET = 1
 NARROW = 2
+
+NEITHER_TOOL = "n"
+TORCH = "t"
+CLIMBING_GEAR = "c"
+TOOLS = "ntc"
 
 known_gidx = {(0, 0): 0, TARGET: 0}
 
@@ -64,4 +72,53 @@ def part_1():
     print("part 1:", risk_level())
 
 
+def fastest_time():
+    wavefront = set((START, tool) for tool in TOOLS)
+    distances = defaultdict(lambda: 2 ** 64)
+    previous = {}
+
+    while TARGET not in distances:
+        # TODO: use a priority queue instead
+        shortest_path = min(wavefront, key=lambda w: distances[w[0]])
+        node = wavefront.remove(shortest_path)
+        for cursor in adj(node):
+            # TODO do it.
+
+
+    return rebuild(distances, previous)
+
+
+def rebuild(dist, prev):
+    s = []
+    u = TARGET
+    if u in prev or u == (0, 0):
+        while u in prev:
+            s.append((u, dist[u]))
+            u = prev[u]
+
+    s.reverse()
+    return s
+
+
+def cost_to_move(u, v):
+    return 1
+
+
+def adj(pos):
+    (x, y) = pos[0]  # pos is ((x, y), tool)
+    aa = [(x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)]
+    for a in aa:
+        if a[0] >= 0 and a[1] >= 0:
+            for tool in [NEITHER_TOOL, TORCH, CLIMBING_GEAR]:
+                yield (a, tool)
+
+
+def part_2():
+    path = fastest_time()
+    print("part 2:")
+    print(path)
+    print(sum(map(lambda x: x[0], path)))
+
+
 part_1()
+part_2()

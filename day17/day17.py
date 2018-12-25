@@ -195,9 +195,8 @@ def trim(grid, max_height):
 
 
 def count(grid, tiles):
-    # tile must not contain '.'
     c = 0
-    for point in grid:
+    for point in point_in_grid(grid):
         if grid[point] in tiles:
             c += 1
     return c
